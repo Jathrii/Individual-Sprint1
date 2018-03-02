@@ -3,6 +3,7 @@ import { LocalDataSource } from 'ng2-smart-table';
 import { ProductService } from '../../../product.service'
 import { DatePipe } from '@angular/common';
 import { CurrencyPipe } from '@angular/common';
+import { UserService } from '../../../user.service';
 
 
 @Component({
@@ -17,6 +18,11 @@ import { CurrencyPipe } from '@angular/common';
 export class StoreComponent implements OnInit {
 
   settings = {
+    actions: {
+      add: false,
+      edit: false,
+      delete: false
+    },
     add: {
       addButtonContent: '<i class="nb-plus"></i>',
       createButtonContent: '<i class="nb-checkmark"></i>',
@@ -79,12 +85,30 @@ export class StoreComponent implements OnInit {
 
   source: any;
 
-  constructor(private productService: ProductService, private datePipe: DatePipe, private currencyPipe: CurrencyPipe) {
+  constructor(private productService: ProductService, private userService: UserService, private datePipe: DatePipe, private currencyPipe: CurrencyPipe) {
     this.source = [];
   }
 
   ngOnInit() {
     this.productService.getProducts().subscribe(res => this.source = res.data);
+    var user = this.userService.getUser();
+    if (!user)
+      return;
+    if (user.userType == 'admin') {
+      this.settings.actions.add = true;
+      this.settings.actions.edit = true;
+      this.settings.actions.delete = true;
+    }
+    else if (user.userType == 'manager') {
+      this.settings.actions.add = true;
+      this.settings.actions.edit = true;
+      this.settings.actions.delete = false;
+    }
+    else if (user.userType == 'viewer') {
+      this.settings.actions.add = false;
+      this.settings.actions.edit = false;
+      this.settings.actions.delete = false;
+    }
   }
 
   onCreateConfirm(event): void {
