@@ -2,6 +2,6 @@ import { Component } from '@angular/core';
 
 @Component({
   selector: 'app-dashboard-items',
-  template: `<p>items Works!</p>`
+  template: `<router-outlet></router-outlet>`
 })
 export class ItemsComponent {}
