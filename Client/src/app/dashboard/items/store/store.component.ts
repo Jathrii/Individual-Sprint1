@@ -90,7 +90,15 @@ export class StoreComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.productService.getProducts().subscribe(res => this.source = res.data);
+    this.productService.getProducts().subscribe(res => {
+      var approvedSeller = 'OmarES';
+      var allProducts = res.data;
+      var approvedProducts = [];
+      for (let product of allProducts)
+        if (product.sellerName == approvedSeller)
+          approvedProducts.push(product);
+      this.source = approvedProducts;
+    });
     var user = this.userService.getUser();
     if (!user)
       return;
