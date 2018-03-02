@@ -21,15 +21,17 @@ export class StoreComponent implements OnInit {
       addButtonContent: '<i class="nb-plus"></i>',
       createButtonContent: '<i class="nb-checkmark"></i>',
       cancelButtonContent: '<i class="nb-close"></i>',
+      confirmCreate: true
     },
     edit: {
       editButtonContent: '<i class="nb-edit"></i>',
       saveButtonContent: '<i class="nb-checkmark"></i>',
       cancelButtonContent: '<i class="nb-close"></i>',
+      confirmSave: true
     },
     delete: {
       deleteButtonContent: '<i class="nb-trash"></i>',
-      confirmDelete: true,
+      confirmDelete: true
     },
     columns: {
       name: {
@@ -41,17 +43,24 @@ export class StoreComponent implements OnInit {
         type: 'number',
         valuePrepareFunction: (price) => {
           var formatted = this.currencyPipe.transform(price);
-          return formatted; 
+          return formatted;
         }
+      },
+      sellerName: {
+        title: 'Seller Name',
+        type: 'string'
       },
       createdAt: {
         title: 'Creation Date',
         type: 'string',
         valuePrepareFunction: (date) => {
+          if (!date)
+            return 'N/A';
           var raw = new Date(date);
           var formatted = this.datePipe.transform(raw, 'dd MMM yyyy');
-          return formatted; 
-        }
+          return formatted;
+        },
+        editable: false
       },
       updatedAt: {
         title: 'Last Modified',
@@ -61,14 +70,11 @@ export class StoreComponent implements OnInit {
             return 'N/A';
           var raw = new Date(date);
           var formatted = this.datePipe.transform(raw, 'dd MMM yyyy');
-          return formatted; 
-        }
-      },
-      sellerName: {
-        title: 'Seller Name',
-        type: 'string'
+          return formatted;
+        },
+        editable: false
       }
-    },
+    }
   }
 
   source: any;
@@ -81,9 +87,113 @@ export class StoreComponent implements OnInit {
     this.productService.getProducts().subscribe(res => this.source = res.data);
   }
 
+  onCreateConfirm(event): void {
+    if (isNaN(event.newData.price)) {
+      event.confirm.reject();
+      window.alert('Price must a number!');
+      return;
+    }
+
+    event.newData.name = event.newData.name.toLowerCase();
+
+    if (window.confirm(
+      'Name: ' + event.newData.name +
+      '\nPrice: ' + this.currencyPipe.transform(event.newData.price) +
+      '\nSeller Name: ' + event.newData.sellerName +
+      '\nCreate product?'
+    )) {
+      delete event.newData.createdAt;
+      delete event.newData.updatedAt;
+      this.productService.createProduct(event.newData).subscribe(function (res) {
+        if (res.err) {
+          event.confirm.reject();
+          window.alert('Couldn\'t create product!\nServer returned:\n' + res.err);
+        }
+        else if (res.msg == 'Product was created successfully.') {
+          event.confirm.resolve(res.data);
+          window.alert(res.msg);
+        }
+        else {
+          event.confirm.reject();
+          window.alert('Couldn\'t create product!\nInternal error code: 1.');
+        }
+      });
+    } else {
+      event.confirm.reject();
+    }
+  }
+
+  onEditConfirm(event): void {
+    if (isNaN(event.newData.price)) {
+      event.confirm.reject();
+      window.alert('Price must a number!');
+      return;
+    }
+
+    event.newData.name = event.newData.name.toLowerCase();
+
+    if (window.confirm(
+      'Name: ' + event.data.name + ' -> ' + event.newData.name +
+      '\nPrice: ' + this.currencyPipe.transform(event.data.price) + ' -> ' + this.currencyPipe.transform(event.newData.price) +
+      '\nSeller Name: ' + event.data.sellerName + ' -> ' + event.newData.sellerName +
+      '\nUpdate product?'
+    )) {
+      this.productService.updateProduct(event.newData).subscribe(function (res) {
+        if (res.err) {
+          event.confirm.reject();
+          window.alert('Couldn\'t update product!\nServer returned:\n' + res.err);
+        }
+        else if (res.msg == 'productId parameter must be a valid ObjectId.') {
+          event.confirm.reject();
+          window.alert('Couldn\'t update product!\nInternal error code: 0.');
+        }
+        else if (res.msg == 'Product not found.') {
+          event.confirm.reject();
+          window.alert(res.msg);
+        }
+        else if (res.msg == 'Product was updated successfully.') {
+          event.confirm.resolve(res.data);
+          window.alert(res.msg);
+        }
+        else {
+          event.confirm.reject();
+          window.alert('Couldn\'t update product!\nInternal error code: 1.');
+        }
+      })
+    } else {
+      event.confirm.reject();
+    }
+  }
+
   onDeleteConfirm(event): void {
-    if (window.confirm('Are you sure you want to delete?')) {
-      event.confirm.resolve();
+    if (window.confirm(
+      'Name: ' + event.data.name +
+      '\nPrice: ' + this.currencyPipe.transform(event.data.price) +
+      '\nSeller Name: ' + event.data.sellerName +
+      '\nDelete product?'
+    )) {
+      this.productService.deleteProduct(event.data._id).subscribe(function (res) {
+        if (res.err) {
+          event.confirm.reject();
+          window.alert('Couldn\'t delete product!\nServer returned:\n' + res.err);
+        }
+        else if (res.msg == 'productId parameter must be a valid ObjectId.') {
+          event.confirm.reject();
+          window.alert('Couldn\'t delete product!\nInternal error code: 0.');
+        }
+        else if (res.msg == 'Product not found.') {
+          event.confirm.resolve();
+          window.alert('Product already deleted!');
+        }
+        else if (res.msg == 'Product was deleted successfully.') {
+          event.confirm.resolve();
+          window.alert(res.msg);
+        }
+        else {
+          window.alert('Couldn\'t delete product!\nInternal error code: 1.');
+          event.confirm.reject();
+        }
+      })
     } else {
       event.confirm.reject();
     }

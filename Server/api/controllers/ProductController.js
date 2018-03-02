@@ -161,7 +161,7 @@ module.exports.deleteProduct = function(req, res, next) {
     }
     if (!deletedProduct) {
       return res
-        .status(404)
+        .status(200)
         .json({ err: null, msg: 'Product not found.', data: null });
     }
     res.status(200).json({
